@@ -1,5 +1,7 @@
 import math
 import curses
+import threading
+
 import cv2
 import numpy as np
 
@@ -21,9 +23,8 @@ def main(stdscr):
             frame = sobel(frame)
             # cv2.imshow('Frame', frame)
             # print(frame_to_ascii(frame))
-
-            for y, line in enumerate(frame_to_ascii(frame).splitlines(), 0):
-
+            stdscr.clear()
+            for y, line in enumerate(frame_to_ascii(frame), 0):
                 try:
                     stdscr.addstr(y, 0, line)
                 except:
@@ -65,21 +66,36 @@ def sobel(frame: np.ndarray):
 
     frame = np.zeros((DIMENSIONS[1], DIMENSIONS[0], 2))
     rows, cols, _ = frame.shape
-    for i in range(rows):
+
+    def update_line(index: int):
         for j in range(cols):
-            frame[i][j] = [sobel_horizontal[i][j]*scale_to_norm, sobel_vertical[i][j]*scale_to_norm]
+            frame[index][j] = [sobel_horizontal[index][j]*scale_to_norm, sobel_vertical[index][j]*scale_to_norm]
+
+    for i in range(rows):
+        t = threading.Thread(target=update_line, args=(i,))
+        t.start()
+        # for j in range(cols):
+        #     frame[i][j] = [sobel_horizontal[i][j]*scale_to_norm, sobel_vertical[i][j]*scale_to_norm]
     # frame = cv2.medianBlur(frame, 3)
 
     return frame
 
 ENV_RADIUS = 18
 def frame_to_ascii(frame: np.ndarray):
-    s = ""
+    s = []
     rows, cols, _ = frame.shape
-    for i in range(rows):
+
+    def update_line():
+        index = len(s)
+        s.append("")
         for j in range(cols):
-            s += color_to_ascii(np.array(frame[i][j]))
-        s += "\n"
+            s[index] += color_to_ascii(np.array(frame[i][j]))
+
+    for i in range(rows):
+        update_line()
+        # for j in range(cols):
+        #     s += color_to_ascii(np.array(frame[i][j]))
+        # s += "\n"
     return s
 
 
