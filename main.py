@@ -1,6 +1,5 @@
 import math
 import curses
-import threading
 
 import cv2
 import numpy as np
@@ -10,36 +9,45 @@ DIMENSIONS = (300, 100)
 MIN_THR = 5 # minimum threshold for which its considered darkness
 SMALLEST_THR = 7 # the highest value for which only a dot will appear
 BOLD_THR = 10 # the smallest value for which it will sho
-
-def main(stdscr):
+W, H = 1000, 900 # height and width at which we'll process the frame
+FPS = 60 # FPS at which the video will be read
+def main():
     # img = cv2.imread("img.jpg")
     # img = sobel(img)
     cap = cv2.VideoCapture("vid.mp4")
-    # stdscr = curses.initscr()
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, W)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, H)
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
+    cap.set(cv2.CAP_PROP_FPS, FPS)
+    stdscr = curses.initscr()
     while (cap.isOpened()):
         # Capture frame-by-frame
+        # start = time.time_ns()
         ret, frame = cap.read()
         if ret:
-            frame = sobel(frame)
             # cv2.imshow('Frame', frame)
+
+            frame_x, frame_y = sobel(frame)
+
+
             # print(frame_to_ascii(frame))
+
+            ascii_frame = frame_to_ascii(frame_x, frame_y)
+
             stdscr.clear()
-            for y, line in enumerate(frame_to_ascii(frame), 0):
+            for y, line in enumerate(ascii_frame, 0):
                 try:
                     stdscr.addstr(y, 0, line)
                 except:
                     pass
-                # for x, p in enumerate(line):
-                #     try:
-                #         stdscr.addstr(y, x, p)
-                #     except:
-                #         pass
+
             stdscr.refresh()
             # stdscr.addstr(0, 0, "frame_to_ascii(frame)\nh")
 
             # Press Q on keyboard to  exit
-            if cv2.waitKey(25) & 0xFF == ord('q'):
-                break
+        # end = time.time_ns()
+        if cv2.waitKey(25) & 0xFF == ord('q'):
+            break
 
     # When everything done, release the video capture object
     cap.release()
@@ -64,32 +72,34 @@ def sobel(frame: np.ndarray):
     sobel_vertical = cv2.resize(sobel_vertical, DIMENSIONS, interpolation=cv2.INTER_AREA)
     # frame = cv2.resize(frame, DIMENSIONS, interpolation=cv2.INTER_AREA)
 
-    frame = np.zeros((DIMENSIONS[1], DIMENSIONS[0], 2))
-    rows, cols, _ = frame.shape
+    # frame = np.zeros((DIMENSIONS[1], DIMENSIONS[0], 2))
+    # rows, cols, _ = frame.shape
 
-    def update_line(index: int):
-        for j in range(cols):
-            frame[index][j] = [sobel_horizontal[index][j]*scale_to_norm, sobel_vertical[index][j]*scale_to_norm]
-
-    for i in range(rows):
-        t = threading.Thread(target=update_line, args=(i,))
-        t.start()
-        # for j in range(cols):
-        #     frame[i][j] = [sobel_horizontal[i][j]*scale_to_norm, sobel_vertical[i][j]*scale_to_norm]
-    # frame = cv2.medianBlur(frame, 3)
-
-    return frame
+    # def update_line(index: int):
+    #     for j in range(cols):
+    #         frame[index][j] = [sobel_horizontal[index][j]*scale_to_norm, sobel_vertical[index][j]*scale_to_norm]
+    #
+    # start = time.time_ns()
+    # for i in range(rows):
+    #     t = threading.Thread(target=update_line, args=(i,))
+    #     t.start()
+    #     # for j in range(cols):
+    #     #     frame[i][j] = [sobel_horizontal[i][j]*scale_to_norm, sobel_vertical[i][j]*scale_to_norm]
+    # # frame = cv2.medianBlur(frame, 3)
+    # end = time.time_ns()
+    return sobel_horizontal*scale_to_norm, sobel_vertical*scale_to_norm
 
 ENV_RADIUS = 18
-def frame_to_ascii(frame: np.ndarray):
+def frame_to_ascii(frame_x: np.ndarray, frame_y: np.ndarray):
     s = []
-    rows, cols, _ = frame.shape
+    rows, cols = frame_x.shape
 
     def update_line():
         index = len(s)
-        s.append("")
+        l =""
         for j in range(cols):
-            s[index] += color_to_ascii(np.array(frame[i][j]))
+            l += color_to_ascii(np.array([frame_x[i][j], frame_y[i][j]]))
+        s.append(l)
 
     for i in range(rows):
         update_line()
@@ -125,4 +135,4 @@ def color_to_ascii(color_bgr: np.array):
 
 
 if __name__ == '__main__':
-    curses.wrapper(main)
+    main()
