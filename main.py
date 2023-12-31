@@ -1,14 +1,13 @@
 import math
 import curses
-
 import cv2
 import numpy as np
 
 
 DIMENSIONS = (300, 100)
-MIN_THR = 5 # minimum threshold for which its considered darkness
-SMALLEST_THR = 7 # the highest value for which only a dot will appear
-BOLD_THR = 10 # the smallest value for which it will sho
+MIN_THR = 5.5 # minimum threshold for which its considered darkness
+SMALLEST_THR = 5.7 # the highest value for which only a dot will appear
+BOLD_THR = 8 # the smallest value for which it will sho
 W, H = 1000, 900 # height and width at which we'll process the frame
 FPS = 60 # FPS at which the video will be read
 def main():
@@ -31,13 +30,11 @@ def main():
 
 
             # print(frame_to_ascii(frame))
-
             ascii_frame = frame_to_ascii(frame_x, frame_y)
-
             stdscr.clear()
             for y, line in enumerate(ascii_frame, 0):
                 try:
-                    stdscr.addstr(y, 0, line)
+                    stdscr.addstr(y, 0, "".join(line))
                 except:
                     pass
 
@@ -94,22 +91,18 @@ def frame_to_ascii(frame_x: np.ndarray, frame_y: np.ndarray):
     s = []
     rows, cols = frame_x.shape
 
-    def update_line():
-        index = len(s)
-        l =""
-        for j in range(cols):
-            l += color_to_ascii(np.array([frame_x[i][j], frame_y[i][j]]))
-        s.append(l)
-
-    for i in range(rows):
-        update_line()
-        # for j in range(cols):
-        #     s += color_to_ascii(np.array(frame[i][j]))
-        # s += "\n"
+    s = [[color_to_ascii(np.array([frame_x[i][j], frame_y[i][j]])) for j in range(cols)] for i in range(rows)]
+    # for i in range(rows):
+    #     update_line()
+    #     # for j in range(cols):
+    #     #     s += color_to_ascii(np.array(frame[i][j]))
+    #     # s += "\n"
     return s
 
 
-def color_to_ascii(color_bgr: np.array):
+
+
+def color_to_ascii(color_bgr: np.ndarray):
     mag = np.linalg.norm(color_bgr)
     if (mag < MIN_THR):
         return " "
